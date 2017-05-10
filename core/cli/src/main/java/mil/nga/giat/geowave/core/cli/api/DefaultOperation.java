@@ -2,6 +2,13 @@ package mil.nga.giat.geowave.core.cli.api;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 
 import org.slf4j.Logger;
@@ -9,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.ParameterException;
 
+import mil.nga.giat.geowave.core.cli.VersionUtils;
 import mil.nga.giat.geowave.core.cli.operations.config.options.ConfigOptions;
 import mil.nga.giat.geowave.core.cli.operations.config.security.crypto.BaseEncryption;
 import mil.nga.giat.geowave.core.cli.operations.config.security.utils.SecurityUtils;
@@ -174,8 +182,28 @@ public class DefaultOperation implements
 	public File getGeoWaveConfigFile(
 			OperationParams params ) {
 		if (getGeoWaveConfigFile() == null) {
-			setGeoWaveConfigFile((File) params.getContext().get(
-					ConfigOptions.PROPERTIES_FILE_CONTEXT));
+			// create the defaults here
+			File defaultGeowaveConfigFile = ConfigOptions.formatConfigFile(
+					VersionUtils.getVersion(), 
+					ConfigOptions.getDefaultPropertyPath());
+			List<String> lines = Arrays.asList("index.benchmark-spatial.opts.numPartitions=32", 
+					"index.benchmark-spatial.opts.partitionStrategy=ROUND_ROBIN" , 
+					"index.benchmark-spatial.opts.storeTime=false", 
+					"index.benchmark-spatial.type=spatial");
+			Path filePath = Paths.get(defaultGeowaveConfigFile.getAbsolutePath());
+			try {
+				Files.write(filePath, lines, Charset.forName("UTF-8"), StandardOpenOption.APPEND);
+				setGeoWaveConfigFile (defaultGeowaveConfigFile);
+			}
+			catch (IOException e) {
+				setGeoWaveConfigFile((File) params.getContext().get(
+						ConfigOptions.PROPERTIES_FILE_CONTEXT));
+				// TODO Log This!!!
+				e.printStackTrace();
+			}
+			
+			/*setGeoWaveConfigFile((File) params.getContext().get(
+					ConfigOptions.PROPERTIES_FILE_CONTEXT));*/
 		}
 		return getGeoWaveConfigFile();
 	}
